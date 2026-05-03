@@ -1,0 +1,9 @@
+docker compose up -d
+
+docker compose ps
+
+docker exec -it search-ai-assistant-postgres pg_isready -U search_ai_assistant -d search_ai_assistant
+
+curl http://localhost:9200/_cluster/health
+
+docker compose down

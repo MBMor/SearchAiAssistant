@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\SearchAiAssistant.Application\SearchAiAssistant.Application.csproj" />
+    <ProjectReference Include="..\SearchAiAssistant.Infrastructure\SearchAiAssistant.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

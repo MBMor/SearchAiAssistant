@@ -1,0 +1,64 @@
+name: search-ai-assistant
+
+services:
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG:-18.3}
+    container_name: search-ai-assistant-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-search_ai_assistant}
+      POSTGRES_USER: ${POSTGRES_USER:-search_ai_assistant}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-temporaryPassword}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - search-ai-assistant-network
+
+  opensearch:
+    image: opensearchproject/opensearch:${OPENSEARCH_IMAGE_TAG:-3.6.0}
+    container_name: search-ai-assistant-opensearch
+    restart: unless-stopped
+    environment:
+      cluster.name: search-ai-assistant
+      node.name: search-ai-assistant-opensearch
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+      DISABLE_SECURITY_PLUGIN: "true"
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+      - "${OPENSEARCH_PERFORMANCE_ANALYZER_PORT:-9600}:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - search-ai-assistant-network
+
+volumes:
+  postgres_data:
+  opensearch_data:
+
+networks:
+  search-ai-assistant-network:
+    driver: bridge

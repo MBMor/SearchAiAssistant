@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SearchAiAssistant.Api\SearchAiAssistant.Api.csproj" />
+    <ProjectReference Include="..\..\src\SearchAiAssistant.Application\SearchAiAssistant.Application.csproj" />
+    <ProjectReference Include="..\..\src\SearchAiAssistant.Infrastructure\SearchAiAssistant.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
