@@ -1,11 +1,22 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SearchAiAssistant.Infrastructure.Persistence;
 
 namespace SearchAiAssistant.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        string postgresConnectionString)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(postgresConnectionString);
+
+        services.AddDbContext<SearchAiAssistantDbContext>(options =>
+        {
+            options.UseNpgsql(postgresConnectionString);    
+        });
+
         return services;
     }
 }

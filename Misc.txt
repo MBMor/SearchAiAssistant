@@ -7,3 +7,14 @@ docker exec -it search-ai-assistant-postgres pg_isready -U search_ai_assistant -
 curl http://localhost:9200/_cluster/health
 
 docker compose down
+
+"SigningKey": "CHANGE_ME_USE_ENVIRONMENT_VARIABLES_32_CHARS_MINIMUM",==>
+Powershell-
+[Convert]::ToBase64String((1..64 | ForEach-Object {Get-Random -Max 256}))
+===>
+Do not store in public configs
+
+
+dotnet ef migrations add InitialCreate --project src/SearchAiAssistant.Infrastructure --startup-project src/SearchAiAssistant.Api --output-dir Persistence/Migrations
+
+dotnet ef database update --project src/SearchAiAssistant.Infrastructure --startup-project src/SearchAiAssistant.Api
