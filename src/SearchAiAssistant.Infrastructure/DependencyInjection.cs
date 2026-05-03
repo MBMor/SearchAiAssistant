@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SearchAiAssistant.Application.Common.Abstractions;
+using SearchAiAssistant.Infrastructure.Common;
 using SearchAiAssistant.Infrastructure.Persistence;
 
 namespace SearchAiAssistant.Infrastructure;
@@ -16,6 +18,8 @@ public static class DependencyInjection
         {
             options.UseNpgsql(postgresConnectionString);    
         });
+
+        services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         return services;
     }
