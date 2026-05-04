@@ -25,6 +25,7 @@ public static class DependencyInjection
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+        services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
