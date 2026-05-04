@@ -16,11 +16,17 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 builder.Services.AddApplicationOptions();
+builder.Services.AddSwaggerDocumentation();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(postgresConnectionString);
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwaggerDocumentation();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
