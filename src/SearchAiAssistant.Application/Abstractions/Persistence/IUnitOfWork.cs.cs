@@ -1,6 +1,6 @@
 ﻿namespace SearchAiAssistant.Application.Abstractions.Persistence;
 
-internal interface IUnitOfWork
+public interface IUnitOfWork
 {
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

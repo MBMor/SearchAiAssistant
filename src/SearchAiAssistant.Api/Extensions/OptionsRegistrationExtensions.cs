@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualBasic.FileIO;
-using SearchAiAssistant.Application.Common.Options;
+﻿using SearchAiAssistant.Application.Common.Options;
 using SearchAiAssistant.Infrastructure.Authentication;
 using SearchAiAssistant.Infrastructure.Search.OpenSearch;
 
