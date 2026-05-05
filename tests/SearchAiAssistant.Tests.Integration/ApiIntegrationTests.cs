@@ -166,6 +166,133 @@ public sealed class ApiIntegrationTests(SearchAiAssistantIntegrationFixture fixt
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Auth_RegisterDuplicateEmail_ShouldReturnConflict()
+    {
+        await _fixture.ResetAsync();
+
+        using var client = _fixture.CreateClient();
+
+        var email = $"duplicate-{Guid.NewGuid():N}@example.com";
+
+        var firstResponse = await client.PostAsJsonAsync(
+            "/api/auth/register",
+            new RegisterUserRequest(
+                Email: email,
+                Password: "Password123!",
+                Role: UserRole.User));
+
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var duplicateResponse = await client.PostAsJsonAsync(
+            "/api/auth/register",
+            new RegisterUserRequest(
+                Email: email.ToUpperInvariant(),
+                Password: "Password123!",
+                Role: UserRole.User));
+
+        duplicateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Auth_LoginWithInvalidPassword_ShouldReturnUnauthorized()
+    {
+        await _fixture.ResetAsync();
+
+        using var client = _fixture.CreateClient();
+
+        var email = $"login-{Guid.NewGuid():N}@example.com";
+
+        var registerResponse = await client.PostAsJsonAsync(
+            "/api/auth/register",
+            new RegisterUserRequest(
+                Email: email,
+                Password: "Password123!",
+                Role: UserRole.User));
+
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var loginResponse = await client.PostAsJsonAsync(
+            "/api/auth/login",
+            new LoginRequest(
+                Email: email,
+                Password: "WrongPassword123!"));
+
+        loginResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Documents_Delete_ShouldRemoveDocumentFromSearch()
+    {
+        await _fixture.ResetAsync();
+
+        using var client = _fixture.CreateClient();
+
+        await AuthenticateAsAdminAsync(client);
+
+        var createdDocument = await PostAsJsonAndReadAsync<CreateDocumentRequest, DocumentResponse>(
+            client,
+            "/api/documents",
+            new CreateDocumentRequest(
+                Title: "Delete Me Policy",
+                Content: "This document should disappear from search after delete.",
+                Category: "Test Policy",
+                Tags: ["delete-me"]));
+
+        var searchBeforeDeleteResponse = await client.GetAsync("/api/search/documents?query=delete-me");
+
+        searchBeforeDeleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var searchBeforeDelete = await ReadJsonAsync<PagedResult<SearchResultItem>>(searchBeforeDeleteResponse);
+
+        searchBeforeDelete.Items.Should().Contain(item => item.SourceId == createdDocument.Id);
+
+        var deleteResponse = await client.DeleteAsync($"/api/documents/{createdDocument.Id}");
+
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        var searchAfterDeleteResponse = await client.GetAsync("/api/search/documents?query=delete-me");
+
+        searchAfterDeleteResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var searchAfterDelete = await ReadJsonAsync<PagedResult<SearchResultItem>>(searchAfterDeleteResponse);
+
+        searchAfterDelete.Items.Should().NotContain(item => item.SourceId == createdDocument.Id);
+    }
+
+    [Fact]
+    public async Task Assistant_UnknownQuestion_ShouldReturnNotEnoughInformation()
+    {
+        await _fixture.ResetAsync();
+
+        using var client = _fixture.CreateClient();
+
+        await AuthenticateAsUserAsync(client);
+
+        var response = await PostAsJsonAndReadAsync<AskAssistantRequest, AssistantResponse>(
+            client,
+            "/api/assistant/ask",
+            new AskAssistantRequest(
+                Question: "What is the company submarine parking policy?",
+                MaxSources: 5));
+
+        response.HasEnoughInformation.Should().BeFalse();
+        response.Sources.Should().BeEmpty();
+        response.Answer.Should().Contain("not have enough information");
+    }
+
+    [Fact]
+    public async Task Health_ShouldReturnOk()
+    {
+        await _fixture.ResetAsync();
+
+        using var client = _fixture.CreateClient();
+
+        var response = await client.GetAsync("/health");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
     private static async Task AuthenticateAsAdminAsync(HttpClient client)
     {
         var authResponse = await PostAsJsonAndReadAsync<RegisterUserRequest, AuthResponse>(
