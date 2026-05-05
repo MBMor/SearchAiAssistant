@@ -1,11 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SearchAiAssistant.Application.Abstractions.Ai;
 using SearchAiAssistant.Application.Abstractions.Authentication;
 using SearchAiAssistant.Application.Abstractions.Indexing;
 using SearchAiAssistant.Application.Abstractions.Persistence;
 using SearchAiAssistant.Application.Abstractions.Search;
 using SearchAiAssistant.Application.Common.Abstractions;
+using SearchAiAssistant.Infrastructure.Ai;
 using SearchAiAssistant.Infrastructure.Authentication;
 using SearchAiAssistant.Infrastructure.Common;
 using SearchAiAssistant.Infrastructure.Persistence;
@@ -51,6 +53,8 @@ public static class DependencyInjection
             httpClient.BaseAddress = new Uri(openSearchOptions.Uri.TrimEnd('/') + "/");
             httpClient.Timeout = TimeSpan.FromSeconds(openSearchOptions.RequestTimeoutSeconds);
         });
+
+        services.AddScoped<IAiAssistant, LocalRuleBasedAiAssistant>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
