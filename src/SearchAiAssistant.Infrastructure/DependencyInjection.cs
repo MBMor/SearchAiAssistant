@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SearchAiAssistant.Application.Abstractions.Authentication;
+using SearchAiAssistant.Application.Abstractions.Indexing;
 using SearchAiAssistant.Application.Abstractions.Persistence;
 using SearchAiAssistant.Application.Abstractions.Search;
 using SearchAiAssistant.Application.Common.Abstractions;
@@ -32,6 +33,16 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddHttpClient<ISearchService, OpenSearchSearchService>((serviceProvider, httpClient) =>
+        {
+            var openSearchOptions = serviceProvider
+                .GetRequiredService<IOptions<OpenSearchOptions>>()
+                .Value;
+
+            httpClient.BaseAddress = new Uri(openSearchOptions.Uri.TrimEnd('/') + "/");
+            httpClient.Timeout = TimeSpan.FromSeconds(openSearchOptions.RequestTimeoutSeconds);
+        });
+
+        services.AddHttpClient<IIndexingService, OpenSearchIndexingService>((serviceProvider, httpClient) =>
         {
             var openSearchOptions = serviceProvider
                 .GetRequiredService<IOptions<OpenSearchOptions>>()

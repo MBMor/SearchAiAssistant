@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using SearchAiAssistant.Application.Abstractions.Indexing;
 using SearchAiAssistant.Application.Abstractions.Persistence;
 using SearchAiAssistant.Application.Common.Abstractions;
 using SearchAiAssistant.Application.Common.Exceptions;
@@ -12,11 +13,13 @@ public sealed class EmployeeService(
     IEmployeeRepository employeeRepository,
     IDateTimeProvider dateTimeProvider,
     IUnitOfWork unitOfWork,
+    IIndexingService indexingService,
     IOptions<PaginationOptions> paginationOptions) : IEmployeeService
 {
     private readonly IEmployeeRepository _employeeRepository = employeeRepository;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IIndexingService _indexingService = indexingService;
     private readonly PaginationOptions _paginationOptions = paginationOptions.Value;
 
     public async Task<EmployeeResponse> CreateAsync(
@@ -45,6 +48,8 @@ public sealed class EmployeeService(
 
         await _employeeRepository.AddAsync(employee, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _indexingService.IndexEmployeeAsync(employee, cancellationToken); 
 
         return ToResponse(employee);
     }
@@ -115,6 +120,8 @@ public sealed class EmployeeService(
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await _indexingService.IndexEmployeeAsync(employee, cancellationToken);
+
         return ToResponse(employee);
     }
 
@@ -131,6 +138,8 @@ public sealed class EmployeeService(
 
         _employeeRepository.Remove(employee);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _indexingService.RemoveEmployeeAsync(id, cancellationToken);
 
         return true;
     }

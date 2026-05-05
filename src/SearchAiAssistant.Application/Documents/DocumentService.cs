@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using SearchAiAssistant.Application.Abstractions.Indexing;
 using SearchAiAssistant.Application.Abstractions.Persistence;
 using SearchAiAssistant.Application.Common.Abstractions;
 using SearchAiAssistant.Application.Common.Options;
@@ -11,11 +12,13 @@ public sealed class DocumentService(
     IDocumentRepository documentRepository,
     IDateTimeProvider dateTimeProvider,
     IUnitOfWork unitOfWork,
+    IIndexingService indexingService,
     IOptions<PaginationOptions> paginationOptions) : IDocumentService
 {
     private readonly IDocumentRepository _documentRepository = documentRepository;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly IIndexingService _indexingService = indexingService;
     private readonly PaginationOptions _paginationOptions = paginationOptions.Value;
 
     public async Task<DocumentResponse> CreateAsync(
@@ -34,6 +37,8 @@ public sealed class DocumentService(
 
         await _documentRepository.AddAsync(document, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _indexingService.IndexDocumentAsync(document, cancellationToken);
 
         return ToResponse(document);
     }
@@ -91,6 +96,8 @@ public sealed class DocumentService(
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await _indexingService.IndexDocumentAsync(document, cancellationToken);
+
         return ToResponse(document);
     }
 
@@ -107,6 +114,8 @@ public sealed class DocumentService(
 
         _documentRepository.Remove(document);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        await _indexingService.RemoveDocumentAsync(id, cancellationToken);
 
         return true;
     }
