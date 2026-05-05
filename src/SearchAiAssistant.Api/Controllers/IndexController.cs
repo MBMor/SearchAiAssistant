@@ -7,18 +7,12 @@ namespace SearchAiAssistant.Api.Controllers;
 [ApiController]
 [Authorize(Roles = "Admin")]
 [Route("api/index")]
-public sealed class IndexController : ControllerBase
+public sealed class IndexController(
+    IIndexManagementService indexManagementService,
+    ILogger<IndexController> logger) : ControllerBase
 {
-    private readonly IIndexManagementService _indexManagementService;
-    private readonly ILogger<IndexController> _logger;
-
-    public IndexController(
-        IIndexManagementService indexManagementService,
-        ILogger<IndexController> logger)
-    {
-        _indexManagementService = indexManagementService;
-        _logger = logger;
-    }
+    private readonly IIndexManagementService _indexManagementService = indexManagementService;
+    private readonly ILogger<IndexController> _logger = logger;
 
     [HttpPost("rebuild")]
     [ProducesResponseType<RebuildIndexResponse>(StatusCodes.Status200OK)]

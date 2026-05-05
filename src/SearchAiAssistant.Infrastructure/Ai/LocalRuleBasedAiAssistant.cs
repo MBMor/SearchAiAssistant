@@ -10,23 +10,16 @@ using SearchAiAssistant.Application.Search;
 
 namespace SearchAiAssistant.Infrastructure.Ai;
 
-public sealed class LocalRuleBasedAiAssistant : IAiAssistant
+public sealed class LocalRuleBasedAiAssistant(
+    ISearchService searchService,
+    IOptions<AiAssistantOptions> options,
+    ILogger<LocalRuleBasedAiAssistant> logger) : IAiAssistant
 {
     private const int DefaultMaxSources = 5;
 
-    private readonly ISearchService _searchService;
-    private readonly AiAssistantOptions _options;
-    private readonly ILogger<LocalRuleBasedAiAssistant> _logger;
-
-    public LocalRuleBasedAiAssistant(
-        ISearchService searchService,
-        IOptions<AiAssistantOptions> options,
-        ILogger<LocalRuleBasedAiAssistant> logger)
-    {
-        _searchService = searchService;
-        _options = options.Value;
-        _logger = logger;
-    }
+    private readonly ISearchService _searchService = searchService;
+    private readonly AiAssistantOptions _options = options.Value;
+    private readonly ILogger<LocalRuleBasedAiAssistant> _logger = logger;
 
     public async Task<AssistantResponse> AskAsync(
         AskAssistantRequest request,
