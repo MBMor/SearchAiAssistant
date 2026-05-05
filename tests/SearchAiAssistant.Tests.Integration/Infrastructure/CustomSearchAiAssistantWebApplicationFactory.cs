@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -8,73 +9,48 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using SearchAiAssistant.Api;
-using SearchAiAssistant.Infrastructure.Authentication;
 using SearchAiAssistant.Infrastructure.Persistence;
-using SearchAiAssistant.Infrastructure.Search.OpenSearch;
-using System.Text;
-using Testcontainers.OpenSearch;
-using Testcontainers.PostgreSql;
-using Xunit;
 
 namespace SearchAiAssistant.Tests.Integration.Infrastructure;
 
 public sealed class CustomSearchAiAssistantWebApplicationFactory
-    : WebApplicationFactory<ApiAssemblyMarker>, IAsyncLifetime
+    : WebApplicationFactory<ApiAssemblyMarker>
 {
-    private const string PostgreSqlImage = "postgres:16.2";
-    private const string OpenSearchImage = "opensearchproject/opensearch:3.6.0";
-
     private const string TestJwtIssuer = "SearchAiAssistant.Api.Tests";
     private const string TestJwtAudience = "SearchAiAssistant.Api.Tests.Client";
     private const string TestJwtSigningKey = "this-is-a-test-signing-key-with-32-plus-chars";
 
-    private readonly PostgreSqlContainer _postgresContainer;
-    private readonly OpenSearchContainer _openSearchContainer;
+    private readonly string _postgresConnectionString;
+    private readonly string _openSearchUri;
+    private readonly string _searchIndexName;
 
-    private string? _postgresConnectionString;
-    private string? _openSearchUri;
-
-    public CustomSearchAiAssistantWebApplicationFactory()
+    public CustomSearchAiAssistantWebApplicationFactory(
+        string postgresConnectionString,
+        string openSearchUri,
+        string searchIndexName)
     {
-        SearchIndexName = $"search-ai-assistant-tests-{Guid.NewGuid():N}";
+        ArgumentException.ThrowIfNullOrWhiteSpace(postgresConnectionString);
+        ArgumentException.ThrowIfNullOrWhiteSpace(openSearchUri);
+        ArgumentException.ThrowIfNullOrWhiteSpace(searchIndexName);
 
-        _postgresContainer = new PostgreSqlBuilder(PostgreSqlImage)
-            .WithDatabase("search_ai_assistant_tests")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .WithCleanUp(true)
-            .Build();
-
-        _openSearchContainer = new OpenSearchBuilder(OpenSearchImage)
-            .WithSecurityEnabled(false)
-            .WithCleanUp(true)
-            .Build();
-    }
-
-    public string SearchIndexName { get; }
-
-    public async Task InitializeAsync()
-    {
-        await _postgresContainer.StartAsync();
-        await _openSearchContainer.StartAsync();
-
-        _postgresConnectionString = _postgresContainer.GetConnectionString();
-        _openSearchUri = _openSearchContainer.GetConnectionString();
+        _postgresConnectionString = postgresConnectionString;
+        _openSearchUri = openSearchUri;
+        _searchIndexName = searchIndexName;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
-        builder.UseSetting("ConnectionStrings:Postgres", RequirePostgresConnectionString());
+        builder.UseSetting("ConnectionStrings:Postgres", _postgresConnectionString);
 
         builder.UseSetting("Jwt:Issuer", TestJwtIssuer);
         builder.UseSetting("Jwt:Audience", TestJwtAudience);
         builder.UseSetting("Jwt:SigningKey", TestJwtSigningKey);
         builder.UseSetting("Jwt:AccessTokenExpirationMinutes", "60");
 
-        builder.UseSetting("OpenSearch:Uri", RequireOpenSearchUri());
-        builder.UseSetting("OpenSearch:IndexName", SearchIndexName);
+        builder.UseSetting("OpenSearch:Uri", _openSearchUri);
+        builder.UseSetting("OpenSearch:IndexName", _searchIndexName);
         builder.UseSetting("OpenSearch:RequestTimeoutSeconds", "30");
 
         builder.UseSetting("Pagination:DefaultPageSize", "20");
@@ -91,15 +67,15 @@ public sealed class CustomSearchAiAssistantWebApplicationFactory
         {
             var settings = new Dictionary<string, string?>
             {
-                ["ConnectionStrings:Postgres"] = RequirePostgresConnectionString(),
+                ["ConnectionStrings:Postgres"] = _postgresConnectionString,
 
                 ["Jwt:Issuer"] = TestJwtIssuer,
                 ["Jwt:Audience"] = TestJwtAudience,
                 ["Jwt:SigningKey"] = TestJwtSigningKey,
                 ["Jwt:AccessTokenExpirationMinutes"] = "60",
 
-                ["OpenSearch:Uri"] = RequireOpenSearchUri(),
-                ["OpenSearch:IndexName"] = SearchIndexName,
+                ["OpenSearch:Uri"] = _openSearchUri,
+                ["OpenSearch:IndexName"] = _searchIndexName,
                 ["OpenSearch:RequestTimeoutSeconds"] = "30",
 
                 ["Pagination:DefaultPageSize"] = "20",
@@ -123,7 +99,7 @@ public sealed class CustomSearchAiAssistantWebApplicationFactory
 
             services.AddDbContext<SearchAiAssistantDbContext>(options =>
             {
-                options.UseNpgsql(RequirePostgresConnectionString());
+                options.UseNpgsql(_postgresConnectionString);
             });
 
             services.PostConfigure<JwtBearerOptions>(
@@ -136,27 +112,5 @@ public sealed class CustomSearchAiAssistantWebApplicationFactory
                         new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSigningKey));
                 });
         });
-    }
-
-    async Task IAsyncLifetime.DisposeAsync()
-    {
-        await base.DisposeAsync();
-
-        await _openSearchContainer.DisposeAsync();
-        await _postgresContainer.DisposeAsync();
-    }
-
-    private string RequirePostgresConnectionString()
-    {
-        return _postgresConnectionString
-            ?? throw new InvalidOperationException(
-                "PostgreSQL test container must be initialized before creating the test host.");
-    }
-
-    private string RequireOpenSearchUri()
-    {
-        return _openSearchUri
-            ?? throw new InvalidOperationException(
-                "OpenSearch test container must be initialized before creating the test host.");
     }
 }

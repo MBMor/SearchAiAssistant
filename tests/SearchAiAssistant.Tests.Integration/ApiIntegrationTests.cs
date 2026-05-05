@@ -1,4 +1,8 @@
-﻿using FluentAssertions;
+﻿using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
+using FluentAssertions;
 using SearchAiAssistant.Application.Assistant;
 using SearchAiAssistant.Application.Auth;
 using SearchAiAssistant.Application.Common.Pagination;
@@ -7,24 +11,22 @@ using SearchAiAssistant.Application.Employees;
 using SearchAiAssistant.Application.Search;
 using SearchAiAssistant.Domain.Enums;
 using SearchAiAssistant.Tests.Integration.Infrastructure;
-using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
-using System.Text.Json;
 
 namespace SearchAiAssistant.Tests.Integration;
 
-public sealed class ApiIntegrationTests
+[Collection(IntegrationTestCollection.Name)]
+public sealed class ApiIntegrationTests(SearchAiAssistantIntegrationFixture fixture)
 {
     private static readonly JsonSerializerOptions JsonSerializerOptions = new(JsonSerializerDefaults.Web);
+
+    private readonly SearchAiAssistantIntegrationFixture _fixture = fixture;
 
     [Fact]
     public async Task Auth_RegisterLoginAndMe_ShouldWorkEndToEnd()
     {
-        await using var factory = await SearchAiAssistantTestHost.CreateInitializedAsync();
-        using var client = factory.CreateClient();
+        await _fixture.ResetAsync();
 
-        await IntegrationDatabaseHelper.MigrateAsync(factory.Services);
+        using var client = _fixture.CreateClient();
 
         var email = $"admin-{Guid.NewGuid():N}@example.com";
 
@@ -69,10 +71,10 @@ public sealed class ApiIntegrationTests
     [Fact]
     public async Task Documents_CreateSearchAndAssistant_ShouldWorkEndToEnd()
     {
-        await using var factory = await SearchAiAssistantTestHost.CreateInitializedAsync();
-        using var client = factory.CreateClient();
+        await _fixture.ResetAsync();
 
-        await IntegrationDatabaseHelper.MigrateAsync(factory.Services);
+        using var client = _fixture.CreateClient();
+
         await AuthenticateAsAdminAsync(client);
 
         var createdDocument = await PostAsJsonAndReadAsync<CreateDocumentRequest, DocumentResponse>(
@@ -112,10 +114,10 @@ public sealed class ApiIntegrationTests
     [Fact]
     public async Task Employees_CreateAndSearch_ShouldWorkEndToEnd()
     {
-        await using var factory = await SearchAiAssistantTestHost.CreateInitializedAsync();
-        using var client = factory.CreateClient();
+        await _fixture.ResetAsync();
 
-        await IntegrationDatabaseHelper.MigrateAsync(factory.Services);
+        using var client = _fixture.CreateClient();
+
         await AuthenticateAsAdminAsync(client);
 
         var createdEmployee = await PostAsJsonAndReadAsync<CreateEmployeeRequest, EmployeeResponse>(
@@ -147,10 +149,10 @@ public sealed class ApiIntegrationTests
     [Fact]
     public async Task Documents_CreateAsRegularUser_ShouldReturnForbidden()
     {
-        await using var factory = await SearchAiAssistantTestHost.CreateInitializedAsync();
-        using var client = factory.CreateClient();
+        await _fixture.ResetAsync();
 
-        await IntegrationDatabaseHelper.MigrateAsync(factory.Services);
+        using var client = _fixture.CreateClient();
+
         await AuthenticateAsUserAsync(client);
 
         var response = await client.PostAsJsonAsync(
