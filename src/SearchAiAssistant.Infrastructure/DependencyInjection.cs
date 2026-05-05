@@ -10,6 +10,7 @@ using SearchAiAssistant.Application.Common.Abstractions;
 using SearchAiAssistant.Infrastructure.Ai;
 using SearchAiAssistant.Infrastructure.Authentication;
 using SearchAiAssistant.Infrastructure.Common;
+using SearchAiAssistant.Infrastructure.HealthChecks;
 using SearchAiAssistant.Infrastructure.Persistence;
 using SearchAiAssistant.Infrastructure.Persistence.Repositories;
 using SearchAiAssistant.Infrastructure.Search.OpenSearch;
@@ -45,6 +46,16 @@ public static class DependencyInjection
         });
 
         services.AddHttpClient<IIndexingService, OpenSearchIndexingService>((serviceProvider, httpClient) =>
+        {
+            var openSearchOptions = serviceProvider
+                .GetRequiredService<IOptions<OpenSearchOptions>>()
+                .Value;
+
+            httpClient.BaseAddress = new Uri(openSearchOptions.Uri.TrimEnd('/') + "/");
+            httpClient.Timeout = TimeSpan.FromSeconds(openSearchOptions.RequestTimeoutSeconds);
+        });
+
+        services.AddHttpClient<OpenSearchHealthCheck>((serviceProvider, httpClient) =>
         {
             var openSearchOptions = serviceProvider
                 .GetRequiredService<IOptions<OpenSearchOptions>>()

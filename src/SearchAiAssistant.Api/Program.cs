@@ -16,6 +16,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 });
 
 builder.Services.AddApplicationOptions();
+builder.Services.AddApplicationHealthChecks(postgresConnectionString);
 builder.Services.AddSwaggerDocumentation();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddApplication();
@@ -34,7 +35,7 @@ app.UseAuthentication();
 app.UseRequestLogging();
 app.UseAuthorization();
 
-app.MapControllers();   
+app.MapControllers();
 
 
 app.MapGet("/", () => Results.Ok(new
