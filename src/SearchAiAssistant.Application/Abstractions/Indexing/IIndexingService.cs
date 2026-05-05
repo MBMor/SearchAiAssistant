@@ -5,6 +5,9 @@ namespace SearchAiAssistant.Application.Abstractions.Indexing;
 
 public interface IIndexingService
 {
+    Task RecreateIndexAsync(
+        CancellationToken cancellationToken = default);
+
     Task IndexEmployeeAsync(
         Employee employee,
         CancellationToken cancellationToken = default);

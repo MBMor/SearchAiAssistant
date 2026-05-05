@@ -18,6 +18,16 @@ public sealed class DocumentRepository(SearchAiAssistantDbContext dbContext) : I
             .FirstOrDefaultAsync(document => document.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<DocumentEntity>> ListAllAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Documents
+            .AsNoTracking()
+            .OrderBy(document => document.Title)
+            .ThenBy(document => document.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<DocumentEntity>> ListAsync(
         DocumentListRequest request,
         CancellationToken cancellationToken = default)

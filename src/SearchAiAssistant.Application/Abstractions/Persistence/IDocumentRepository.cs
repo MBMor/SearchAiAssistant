@@ -8,6 +8,9 @@ public interface IDocumentRepository
 {
     Task<DocumentEntity?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<DocumentEntity>> ListAllAsync(
+        CancellationToken cancellationToken = default);
+
     Task<PagedResult<DocumentEntity>> ListAsync(
         DocumentListRequest request,
         CancellationToken cancellationToken = default);

@@ -24,6 +24,19 @@ public sealed class OpenSearchIndexingService(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<OpenSearchIndexingService> _logger = logger;
 
+    public async Task RecreateIndexAsync(
+    CancellationToken cancellationToken = default)
+    {
+        await DeleteIndexIfExistsAsync(cancellationToken);
+
+        var indexExists = await EnsureIndexExistsAsync(cancellationToken);
+
+        if (!indexExists)
+        {
+            throw new InvalidOperationException(
+                $"OpenSearch index '{_openSearchOptions.IndexName}' could not be created.");
+        }
+    }
     public Task IndexEmployeeAsync(
         Employee employee,
         CancellationToken cancellationToken = default)
@@ -173,6 +186,41 @@ public sealed class OpenSearchIndexingService(
             "Deleted OpenSearch document. Index: {IndexName}, DocumentId: {DocumentId}",
             _openSearchOptions.IndexName,
             documentId);
+    }
+
+    private async Task DeleteIndexIfExistsAsync(
+       CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.DeleteAsync(
+            Escape(_openSearchOptions.IndexName),
+            cancellationToken);
+
+        var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            _logger.LogInformation(
+                "OpenSearch index '{IndexName}' did not exist before rebuild.",
+                _openSearchOptions.IndexName);
+
+            return;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError(
+                "Failed to delete OpenSearch index before rebuild. StatusCode: {StatusCode}, Index: {IndexName}, Response: {ResponseBody}",
+                response.StatusCode,
+                _openSearchOptions.IndexName,
+                responseBody);
+
+            throw new InvalidOperationException(
+                $"OpenSearch index '{_openSearchOptions.IndexName}' could not be deleted.");
+        }
+
+        _logger.LogInformation(
+            "Deleted OpenSearch index '{IndexName}' before rebuild.",
+            _openSearchOptions.IndexName);
     }
 
     private async Task<bool> EnsureIndexExistsAsync(CancellationToken cancellationToken)

@@ -18,6 +18,17 @@ public sealed class EmployeeRepository(SearchAiAssistantDbContext dbContext) : I
             .FirstOrDefaultAsync(employee => employee.Id == id, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Employee>> ListAllAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Employees
+            .AsNoTracking()
+            .OrderBy(employee => employee.LastName)
+            .ThenBy(employee => employee.FirstName)
+            .ThenBy(employee => employee.Id)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PagedResult<Employee>> ListAsync(
         EmployeeListRequest request,
         CancellationToken cancellationToken = default)

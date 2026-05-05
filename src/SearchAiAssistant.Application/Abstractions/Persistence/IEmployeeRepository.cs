@@ -8,6 +8,9 @@ public interface IEmployeeRepository
 {
     Task<Employee?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Employee>> ListAllAsync(
+        CancellationToken cancellationToken = default);
+
     Task<PagedResult<Employee>> ListAsync(
         EmployeeListRequest request,
         CancellationToken cancellationToken = default);
