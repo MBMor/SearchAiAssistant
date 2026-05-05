@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi;
+﻿using Microsoft.OpenApi;
+using System.Reflection;
 
 namespace SearchAiAssistant.Api.Extensions;
 
@@ -19,21 +19,50 @@ public static class SwaggerExtensions
             {
                 Title = ApiTitle,
                 Version = ApiVersion,
-                Description = "Local-first Search & AI Assistant API for company and HR knowledge-base data."
+                Description = """
+                    Local-first ASP.NET Core Web API for employee management, document knowledge-base management,
+                    OpenSearch-powered full-text search, JWT authentication, and a retrieval-based local AI assistant.
+                    """,
+                Contact = new OpenApiContact
+                {
+                    Name = "Search & AI Assistant Portfolio Project"
+                }
             });
+
+            options.CustomSchemaIds(type =>
+                type.FullName?.Replace('+', '.') ?? type.Name);
+
+            options.SupportNonNullableReferenceTypes();
+
+            var xmlFileName = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+            var xmlFilePath = Path.Combine(AppContext.BaseDirectory, xmlFileName);
+
+            if (File.Exists(xmlFilePath))
+            {
+                options.IncludeXmlComments(
+                    xmlFilePath,
+                    includeControllerXmlComments: true);
+            }
 
             options.AddSecurityDefinition(JwtBearerSchemeId, new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.Http,
-                Scheme = JwtBearerDefaults.AuthenticationScheme,
+                Scheme = "bearer",
                 BearerFormat = "JWT",
-                Description = "Paste only the JWT access token. Do not include the 'Bearer' prefix."
+                Description = """
+                    JWT Bearer authentication.
+
+                    Use POST /api/auth/register or POST /api/auth/login to get an accessToken.
+                    In Swagger UI, click Authorize and paste only the raw JWT token.
+                    Do not include the 'Bearer' prefix.
+                    """
             });
 
-            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-            {
-                [new OpenApiSecuritySchemeReference(JwtBearerSchemeId, document)] = []
-            });
+            options.AddSecurityRequirement(document =>
+                new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference(JwtBearerSchemeId, document)] = []
+                });
         });
 
         return services;
@@ -45,9 +74,16 @@ public static class SwaggerExtensions
 
         app.UseSwaggerUI(options =>
         {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", $"{ApiTitle} {ApiVersion}");
+            options.SwaggerEndpoint(
+                "/swagger/v1/swagger.json",
+                $"{ApiTitle} {ApiVersion}");
+
             options.RoutePrefix = "swagger";
+            options.DocumentTitle = ApiTitle;
             options.DisplayRequestDuration();
+            options.EnableDeepLinking();
+            options.EnablePersistAuthorization();
+            options.DocExpansion(Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.None);
         });
 
         return app;

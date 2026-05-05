@@ -8,19 +8,14 @@ namespace SearchAiAssistant.Api.Controllers;
 [ApiController]
 [AllowAnonymous]
 [Route("health")]
-public sealed class HealthController : ControllerBase
+public sealed class HealthController(HealthCheckService healthCheckService) : ControllerBase
 {
     private static readonly JsonSerializerOptions JsonSerializerOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true
     };
 
-    private readonly HealthCheckService _healthCheckService;
-
-    public HealthController(HealthCheckService healthCheckService)
-    {
-        _healthCheckService = healthCheckService;
-    }
+    private readonly HealthCheckService _healthCheckService = healthCheckService;
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
