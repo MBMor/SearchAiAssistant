@@ -23,12 +23,15 @@ builder.Services.AddInfrastructure(postgresConnectionString);
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwaggerDocumentation();
 }
 
 app.UseAuthentication();
+app.UseRequestLogging();
 app.UseAuthorization();
 
 app.MapControllers();   
